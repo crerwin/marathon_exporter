@@ -25,11 +25,18 @@ var (
 	marathonUri = flag.String(
 		"marathon.uri", "http://marathon.mesos:8080",
 		"URI of Marathon")
+
+	dcosToken = flag.String(
+		"dcos.token", "none",
+		"Bearer token for DC/OS authentication")
 )
 
 func marathonConnect(uri *url.URL) error {
 	config := marathon.NewDefaultConfig()
 	config.URL = uri.String()
+	if *dcosToken != "none" {
+		config.DCOSToken = *dcosToken
+	}
 
 	if uri.User != nil {
 		if passwd, ok := uri.User.Password(); ok {
@@ -77,9 +84,14 @@ func main() {
 		if err == nil {
 			break
 		}
+		if err.Error() == "all the Marathon hosts are presently down" && *dcosToken != "none" {
+			// if we're targeting the DC/OS admin router the marathon client will complain
+			// about marathon hosts being down, but that's okay
+			break
+		}
 
 		log.Debugf("Problem connecting to Marathon: %v", err)
-		log.Infof("Couldn't connect to Marathon! Trying again in %v", retryTimeout)
+		log.Infof("Couldn't connect to Marathon! at %v Trying again in %v", uri, retryTimeout)
 		time.Sleep(retryTimeout)
 	}
 
