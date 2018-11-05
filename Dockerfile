@@ -1,5 +1,5 @@
 FROM scratch
-MAINTAINER Getty Images "https://github.com/gettyimages"
+MAINTAINER Chris Erwin "https://github.com/crerwin/marathon_exporter/"
 
 ADD bin/marathon_exporter /marathon_exporter
 ENTRYPOINT ["/marathon_exporter"]
