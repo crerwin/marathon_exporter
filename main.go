@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"flag"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -39,6 +40,10 @@ var (
 	dcosServiceAccountPrivateKey = flag.String(
 		"dcos.serviceaccountprivatekey", "none",
 		"Private Key for DC/OS Service Account")
+
+	dcosServiceAccountPrivateKeyFile = flag.String(
+		"dcos.serviceaccountprivatekeyfile", "none",
+		"Private Key file for DC/OS Service Account")
 )
 
 func dcosSetup(uri *url.URL) marathon.Config {
@@ -50,6 +55,14 @@ func dcosSetup(uri *url.URL) marathon.Config {
 	}
 	authURL := strings.TrimSuffix(uri.String(), "/marathon")
 
+	if *dcosServiceAccountPrivateKey == "none" && *dcosServiceAccountPrivateKeyFile != "none" {
+		contents, err := ioutil.ReadFile(*dcosServiceAccountPrivateKeyFile)
+		if err != nil {
+			log.Fatalf("error reading private key file: %v", err)
+		}
+		*dcosServiceAccountPrivateKey = string(contents)
+	}
+
 	if *dcosServiceAccoundUID != "none" && *dcosServiceAccountPrivateKey != "none" {
 		dcosauther := dcosauth.New(authURL, *dcosServiceAccoundUID, *dcosServiceAccountPrivateKey)
 		token, _ := dcosauther.Token()
@@ -60,7 +73,7 @@ func dcosSetup(uri *url.URL) marathon.Config {
 
 func marathonConnect(uri *url.URL) error {
 	config := marathon.NewDefaultConfig()
-	if *dcosToken != "none" || *dcosServiceAccoundUID != "non" || *dcosServiceAccountPrivateKey != "none" {
+	if *dcosToken != "none" || *dcosServiceAccoundUID != "none" || *dcosServiceAccountPrivateKey != "none" || *dcosServiceAccountPrivateKeyFile != "none" {
 		config = dcosSetup(uri)
 	} else {
 		config.URL = uri.String()
