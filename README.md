@@ -40,3 +40,29 @@ Usage of marathon_exporter:
 ```
 docker run -p 9088:9088 crerwin/marathon_exporter:0.3.0 --marathon.uri=https://mydcoscluster.company.com/marathon/ --dcos.token="$(dcos config show core.dcos_acs_token)"
 ```
+## DC/OS Example
+This example shows how to use the marathon exporter on DC/OS, targeting the admin router
+### Prerequisites
+ - DC/OS Enterprise cluster
+ - DC/OS enterprise cli installed `dcos package install dcos-enterprise-cli`
+### Setup
+1. Create a keypair
+```
+dcos security org service-accounts keypair marathon-exporter.pem marathon-exporter.pub
+```
+2. Create a service account
+```
+dcos security org service-accounts create -p marathon-exporter.pub -d "marathon exporter service account" marathon-exporter
+```
+3. Create a secret
+```
+dcos security secrets create -f marathon-exporter.pem marathon-exporter-pk
+```
+4. Grant permissions to service account
+```
+dcos security org users grant marathon-exporter dcos:adminrouter:service:marathon full
+```
+5. Run the application
+```
+dcos marathon app add example_deployment.json
+```

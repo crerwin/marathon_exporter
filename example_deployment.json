@@ -2,7 +2,7 @@
     "id": "/marathonexporter",
     "backoffFactor": 1.15,
     "backoffSeconds": 1,
-    "cmd": "/marathon_exporter --marathon.uri=[dcosadminrouter]/marathon --dcos.serviceaccountuid=testsa --dcos.serviceaccountprivatekeyfile=$MESOS_SANDBOX/testsa.pem",
+    "cmd": "/marathon_exporter --marathon.uri=[dcosurlforadminrouter]/marathon --dcos.serviceaccountuid=marathon-exporter --dcos.serviceaccountprivatekeyfile=$MESOS_SANDBOX/marathon-exporter.pem",
     "container": {
       "portMappings": [
         {
@@ -19,8 +19,8 @@
       "type": "MESOS",
       "volumes": [
         {
-          "containerPath": "testsa.pem",
-          "secret": "testsa_private_key"
+          "containerPath": "marathon-exporter.pem",
+          "secret": "marathon-exporter-pk"
         }
       ],
       "docker": {
@@ -42,8 +42,8 @@
     ],
     "requirePorts": false,
     "secrets": {
-      "testsa_private_key": {
-        "source": "testsa_private_key"
+      "marathon-exporter-pk": {
+        "source": "marathon-exporter-pk"
       }
     },
     "upgradeStrategy": {
