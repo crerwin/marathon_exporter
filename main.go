@@ -3,11 +3,14 @@ package main
 import (
 	"crypto/tls"
 	"flag"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
+	"github.com/crerwin/dcosauth/pkg/dcosauth"
 	"github.com/matt-deboer/go-marathon"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
@@ -25,11 +28,56 @@ var (
 	marathonUri = flag.String(
 		"marathon.uri", "http://marathon.mesos:8080",
 		"URI of Marathon")
+
+	dcosToken = flag.String(
+		"dcos.token", "none",
+		"Bearer token for DC/OS authentication")
+
+	dcosServiceAccoundUID = flag.String(
+		"dcos.serviceaccountuid", "none",
+		"UID for DC/OS Service Account")
+
+	dcosServiceAccountPrivateKey = flag.String(
+		"dcos.serviceaccountprivatekey", "none",
+		"Private Key for DC/OS Service Account")
+
+	dcosServiceAccountPrivateKeyFile = flag.String(
+		"dcos.serviceaccountprivatekeyfile", "none",
+		"Private Key file for DC/OS Service Account")
 )
+
+func dcosSetup(uri *url.URL) marathon.Config {
+	config := marathon.NewDefaultConfig()
+	// add /marathon to end of admin router url
+	config.URL = "https://" + uri.String()
+	if *dcosToken != "none" {
+		config.DCOSToken = *dcosToken
+	}
+	authURL := strings.TrimSuffix(uri.String(), "/marathon")
+
+	if *dcosServiceAccountPrivateKey == "none" && *dcosServiceAccountPrivateKeyFile != "none" {
+		contents, err := ioutil.ReadFile(*dcosServiceAccountPrivateKeyFile)
+		if err != nil {
+			log.Fatalf("error reading private key file: %v", err)
+		}
+		*dcosServiceAccountPrivateKey = string(contents)
+	}
+
+	if *dcosServiceAccoundUID != "none" && *dcosServiceAccountPrivateKey != "none" {
+		dcosauther := dcosauth.New(authURL, *dcosServiceAccoundUID, *dcosServiceAccountPrivateKey)
+		token, _ := dcosauther.Token()
+		config.DCOSToken = token
+	}
+	return config
+}
 
 func marathonConnect(uri *url.URL) error {
 	config := marathon.NewDefaultConfig()
-	config.URL = uri.String()
+	if *dcosToken != "none" || *dcosServiceAccoundUID != "none" || *dcosServiceAccountPrivateKey != "none" || *dcosServiceAccountPrivateKeyFile != "none" {
+		config = dcosSetup(uri)
+	} else {
+		config.URL = uri.String()
+	}
 
 	if uri.User != nil {
 		if passwd, ok := uri.User.Password(); ok {
@@ -77,9 +125,14 @@ func main() {
 		if err == nil {
 			break
 		}
+		if err.Error() == "all the Marathon hosts are presently down" && (*dcosToken != "none" || *dcosServiceAccoundUID != "none") {
+			// if we're targeting the DC/OS admin router the marathon client will complain
+			// about marathon hosts being down, but that's okay
+			break
+		}
 
-		log.Debugf("Problem connecting to Marathon: %v", err)
-		log.Infof("Couldn't connect to Marathon! Trying again in %v", retryTimeout)
+		log.Infof("Problem connecting to Marathon: %v", err)
+		log.Infof("Couldn't connect to Marathon! at %v Trying again in %v", uri, retryTimeout)
 		time.Sleep(retryTimeout)
 	}
 

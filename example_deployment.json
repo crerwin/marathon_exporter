@@ -1,0 +1,61 @@
+{
+    "id": "/marathonexporter",
+    "backoffFactor": 1.15,
+    "backoffSeconds": 1,
+    "cmd": "/marathon_exporter --marathon.uri=[dcosurlforadminrouter]/marathon --dcos.serviceaccountuid=marathon-exporter --dcos.serviceaccountprivatekeyfile=$MESOS_SANDBOX/marathon-exporter.pem",
+    "container": {
+      "portMappings": [
+        {
+          "containerPort": 9088,
+          "hostPort": 0,
+          "labels": {
+            "VIP_0": "/marathonexporter:9088"
+          },
+          "protocol": "tcp",
+          "servicePort": 10000,
+          "name": "marathonexporter"
+        }
+      ],
+      "type": "MESOS",
+      "volumes": [
+        {
+          "containerPath": "marathon-exporter.pem",
+          "secret": "marathon-exporter-pk"
+        }
+      ],
+      "docker": {
+        "image": "crerwin/marathon_exporter",
+        "forcePullImage": false,
+        "parameters": []
+      }
+    },
+    "cpus": 0.1,
+    "disk": 0,
+    "instances": 1,
+    "maxLaunchDelaySeconds": 3600,
+    "mem": 128,
+    "gpus": 0,
+    "networks": [
+      {
+        "mode": "container/bridge"
+      }
+    ],
+    "requirePorts": false,
+    "secrets": {
+      "marathon-exporter-pk": {
+        "source": "marathon-exporter-pk"
+      }
+    },
+    "upgradeStrategy": {
+      "maximumOverCapacity": 1,
+      "minimumHealthCapacity": 1
+    },
+    "killSelection": "YOUNGEST_FIRST",
+    "unreachableStrategy": {
+      "inactiveAfterSeconds": 0,
+      "expungeAfterSeconds": 0
+    },
+    "healthChecks": [],
+    "fetch": [],
+    "constraints": []
+  }

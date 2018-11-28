@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/jeffail/gabs"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
 )
